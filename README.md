@@ -1,7 +1,7 @@
 
 # BrainF-ck
 
-C BrainF*ck interperter
+BrainF*ck C interpreter using only stack memory
 
 ## How to use
 
