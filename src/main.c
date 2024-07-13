@@ -6,15 +6,15 @@
 /**
  * C BrainF-ck Interpreter
  * Antoine LANDRIEUX
- * 
+ *
  * <https://github.com/AntoineLandrieux/BrainF-ck>
-**/
+ **/
 
 /**
- * @brief 512000 bits
+ * @brief 64000 * (sizeof(int32_t) * 8) bits
  *
  */
-int8_t MEMORY[64 * 1000];
+int32_t MEMORY[64 * 1000];
 
 #define MAX_USER_INPUT 1000
 
@@ -23,15 +23,19 @@ typedef struct brainf_ck
     char _Code[MAX_USER_INPUT];
 
     uint64_t _Position;
-
     uint8_t _Condition;
-    uint64_t _Condition_Address;
 } BrainF_ck;
 
+void Initialize()
+{
+    for (uint64_t i = 0; i < (sizeof(MEMORY) / sizeof(int32_t)); i++)
+        MEMORY[i] = 0x00;
+}
+
 /**
- * 
- * @param _BrainF_ckLine 
- * @return uint32_t 
+ *
+ * @param _BrainF_ckLine
+ * @return uint32_t
  */
 uint32_t RunBrainF_ckLine(BrainF_ck _BrainF_ckLine)
 {
@@ -48,63 +52,63 @@ uint32_t RunBrainF_ckLine(BrainF_ck _BrainF_ckLine)
         switch (c)
         {
         case '>':
-
             POINTER++;
             break;
 
         case '<':
-
             POINTER--;
             break;
 
         case '+':
-
             ++MEMORY[POINTER];
             break;
 
         case '-':
-
             --MEMORY[POINTER];
             break;
 
         case '.':
-
             putchar(MEMORY[POINTER]);
             break;
 
         case ',':
-
-            MEMORY[POINTER] = getchar();
+            MEMORY[POINTER] = (char)getchar();
             break;
 
         case '[':
+            if (!MEMORY[POINTER])
+            {
+                for (int32_t Next = 0; _BrainF_ckLine._Code[_BrainF_ckLine._Position] != ']' && !Next; _BrainF_ckLine._Position++)
+                {
+                    if (_BrainF_ckLine._Code[_BrainF_ckLine._Position] == '[')
+                        Next++;
+                    else if (_BrainF_ckLine._Code[_BrainF_ckLine._Position] == ']')
+                        Next--;
+                }
+                _BrainF_ckLine._Position++;
+                break;
+            }
 
             strcpy(new._Code, _BrainF_ckLine._Code);
             new._Position = _BrainF_ckLine._Position;
             new._Condition = 1;
-            new._Condition_Address = POINTER;
 
             _BrainF_ckLine._Position = RunBrainF_ckLine(new);
             break;
 
         case ']':
-
             if (!_BrainF_ckLine._Condition)
-                fprintf(stderr, "\n[ERROR] THE LOOP IS ENDING WITHOUT HAVING STARTED\n");
-
-            else if (MEMORY[_BrainF_ckLine._Condition_Address])
             {
-                strcpy(new._Code, _BrainF_ckLine._Code);
-                new._Position = _Start;
-                new._Condition = 1;
-                new._Condition_Address = _BrainF_ckLine._Condition_Address;
-                return RunBrainF_ckLine(new);
+                fprintf(stderr, "\n[ERROR] THE LOOP IS ENDING WITHOUT HAVING STARTED\n");
+                exit(EXIT_FAILURE);
             }
+
+            else if (MEMORY[POINTER])
+                return _Start - 1;
 
             return _BrainF_ckLine._Position;
 
         default:
-
             break;
         }
     }
@@ -112,8 +116,8 @@ uint32_t RunBrainF_ckLine(BrainF_ck _BrainF_ckLine)
 }
 
 /**
- * 
- * @param _Filename 
+ *
+ * @param _Filename
  */
 void ExecuteFile(const char *_Filename)
 {
@@ -128,7 +132,8 @@ void ExecuteFile(const char *_Filename)
     BrainF_ck bf;
     bf._Position = 0;
     bf._Condition = 0;
-    bf._Condition_Address = 0;
+
+    Initialize();
 
     while (fgets(bf._Code, MAX_USER_INPUT, file) != NULL)
         RunBrainF_ckLine(bf);
